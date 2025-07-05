@@ -16,7 +16,7 @@ import patchcore.utils
 
 LOGGER = logging.getLogger(__name__)
 
-_DATASETS = {"mvtec": ["patchcore.datasets.mvtec", "MVTecDataset"]}
+_DATASETS = {"btad": ["patchcore.datasets.btad", "BTADDataset"]}
 
 
 @click.group(chain=True)

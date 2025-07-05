@@ -16,7 +16,7 @@ import patchcore.utils
 
 LOGGER = logging.getLogger(__name__)
 
-_DATASETS = {"mvtec": ["patchcore.datasets.mvtec", "MVTecDataset"]}
+_DATASETS = {"btad": ["patchcore.datasets.btad", "BTADDataset"]}
 
 
 @click.group(chain=True)
@@ -132,7 +132,7 @@ def run(
             segmentations = np.mean(segmentations, axis=0)
 
             anomaly_labels = [
-                x[1] != "good" for x in dataloaders["testing"].dataset.data_to_iterate
+                x[1] != "ok" for x in dataloaders["testing"].dataset.data_to_iterate
             ]
 
             # (Optional) Plot example images.

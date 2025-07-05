@@ -10,17 +10,15 @@ import torch
 import tqdm
 
 LOGGER = logging.getLogger(__name__)
-
-
 def plot_segmentation_images(
-    savefolder,
-    image_paths,
-    segmentations,
-    anomaly_scores=None,
-    mask_paths=None,
-    image_transform=lambda x: x,
-    mask_transform=lambda x: x,
-    save_depth=4,
+        savefolder,
+        image_paths,
+        segmentations,
+        anomaly_scores=None,
+        mask_paths=None,
+        image_transform=lambda x: x,
+        mask_transform=lambda x: x,
+        save_depth=4,
 ):
     """Generate anomaly segmentation images.
 
@@ -33,6 +31,9 @@ def plot_segmentation_images(
         mask_transform: [function or lambda] Optional transformation of masks.
         save_depth: [int] Number of path-strings to use for image savenames.
     """
+
+    if anomaly_scores is not None:
+        threshold = np.percentile(anomaly_scores, 95)
     if mask_paths is None:
         mask_paths = ["-1" for _ in range(len(image_paths))]
     masks_provided = mask_paths[0] != "-1"
@@ -41,12 +42,12 @@ def plot_segmentation_images(
 
     os.makedirs(savefolder, exist_ok=True)
 
-    for image_path, mask_path, anomaly_score, segmentation in tqdm.tqdm(
+    for i, (image_path, mask_path, anomaly_score, segmentation) in enumerate(tqdm.tqdm(
         zip(image_paths, mask_paths, anomaly_scores, segmentations),
         total=len(image_paths),
         desc="Generating Segmentation Images...",
         leave=False,
-    ):
+    )):
         image = PIL.Image.open(image_path).convert("RGB")
         image = image_transform(image)
         if not isinstance(image, np.ndarray):
@@ -61,16 +62,78 @@ def plot_segmentation_images(
             else:
                 mask = np.zeros_like(image)
 
+        # GT 라벨 추출 (경로에서)
+        path_lower = image_path.lower()
+        gt_is_anomaly = any(keyword in path_lower for keyword in ['ko', 'defect', 'anomaly', 'bad'])
+        gt_label = "KO" if gt_is_anomaly else "OK"
+        
+        # 예측 결과
+        if anomaly_score != "-1" and anomaly_scores is not None:
+            pred_is_anomaly = float(anomaly_score) > threshold
+            pred_label = "Anomaly" if pred_is_anomaly else "Normal"
+            score_text = f"Score: {float(anomaly_score):.4f}"
+        else:
+            pred_is_anomaly = False
+            pred_label = "Normal"
+            score_text = "Score: N/A"
+        
+        # 정답 여부
+        correct = (gt_is_anomaly == pred_is_anomaly)
+        result_text = "✓ CORRECT" if correct else "✗ WRONG"
+        result_color = 'green' if correct else 'red'
+        
+        # 분류 타입
+        if correct:
+            if gt_is_anomaly:
+                classification = "True Positive (TP)"
+            else:
+                classification = "True Negative (TN)"
+        else:
+            if gt_is_anomaly:
+                classification = "False Negative (FN)"
+            else:
+                classification = "False Positive (FP)"
+
         savename = image_path.split("/")
         savename = "_".join(savename[-save_depth:])
+        # 파일명에 결과 포함
+        base_name = savename.replace(".bmp", "").replace(".png", "")
+        result_suffix = "CORRECT" if correct else "WRONG"
+        savename = f"{base_name}_{gt_label}_vs_{pred_label}_{result_suffix}.png"
         savename = os.path.join(savefolder, savename)
-        f, axes = plt.subplots(1, 2 + int(masks_provided))
+        
+        f, axes = plt.subplots(1, 2 + int(masks_provided), figsize=(15, 5))
+        
+        # 원본 이미지
         axes[0].imshow(image.transpose(1, 2, 0))
-        axes[1].imshow(mask.transpose(1, 2, 0))
-        axes[2].imshow(segmentation)
-        f.set_size_inches(3 * (2 + int(masks_provided)), 3)
+        axes[0].set_title(f'Original\nGT: {gt_label}', fontsize=10, fontweight='bold')
+        axes[0].axis('off')
+        
+        if masks_provided:
+            # GT 마스크
+            axes[1].imshow(mask.transpose(1, 2, 0))
+            axes[1].set_title('Ground Truth\nMask', fontsize=10)
+            axes[1].axis('off')
+            
+            # 예측 segmentation
+            im = axes[2].imshow(segmentation, cmap='jet')
+            axes[2].set_title(f'Prediction: {pred_label}\n{score_text}\n{classification}', 
+                            fontsize=10, fontweight='bold')
+            axes[2].axis('off')
+        else:
+            # 예측 segmentation  
+            im = axes[1].imshow(segmentation, cmap='jet')
+            axes[1].set_title(f'Prediction: {pred_label}\n{score_text}\n{classification}', 
+                            fontsize=10, fontweight='bold')
+            axes[1].axis('off')
+        
+        # 전체 제목
+        f.suptitle(f'{result_text} | GT: {gt_label} vs Pred: {pred_label}', 
+                  fontsize=14, color=result_color, fontweight='bold')
+        
+        f.set_size_inches(3 * (2 + int(masks_provided)), 4)
         f.tight_layout()
-        f.savefig(savename)
+        f.savefig(savename, dpi=150, bbox_inches='tight')
         plt.close()
 
 
