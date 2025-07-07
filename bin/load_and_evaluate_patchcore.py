@@ -119,11 +119,11 @@ def run(methods, results_path, gpu, seed, save_segmentation_images):
                     x[3] for x in dataloaders["testing"].dataset.data_to_iterate
                 ]
                 
-                # 데이터 분석 기반 최적 threshold 사용
-                optimal_threshold = 0.07  # ROC-optimal threshold (분석 결과 기반)
-                
-                print(f"Using optimal threshold: {optimal_threshold:.4f} (ROC-optimal)")
-                print(f"Based on data analysis: OK ~0.2, KO ~0.6, Optimal separation at {optimal_threshold:.4f}")
+                    # 데이터 분석 기반 최적 threshold 사용
+    optimal_threshold = 0.0  # ROC-optimal threshold (분석 결과 기반)
+    
+    print(f"Using optimal threshold: {optimal_threshold:.4f} (ROC-optimal)")
+    print(f"Based on data analysis: OK ~0.2, KO ~0.6, Optimal separation at {optimal_threshold:.4f}")
                 
                 # GT 라벨 추출 (성능 분석용)
                 gt_labels = []

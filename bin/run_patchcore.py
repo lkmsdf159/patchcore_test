@@ -145,7 +145,7 @@ def run(
                 ]
                 
                 # 데이터 분석 기반 최적 threshold 사용
-                optimal_threshold = 0.07  # ROC-optimal threshold (분석 결과 기반)
+                optimal_threshold = 0.0  # ROC-optimal threshold (분석 결과 기반)
                 
                 print(f"Using optimal threshold: {optimal_threshold:.4f} (ROC-optimal)")
                 print(f"Based on data analysis: OK ~0.2, KO ~0.6, Optimal separation at {optimal_threshold:.4f}")

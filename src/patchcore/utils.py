@@ -34,7 +34,7 @@ def plot_segmentation_images(
     """
 
     if threshold is None:
-        threshold = 0.07  # ROC-optimal threshold (분석 결과 기반)
+        threshold = 0.0  # ROC-optimal threshold (분석 결과 기반)
         print(f"Using optimal threshold: {threshold:.4f} (ROC-optimal)")
     else:
         print(f"Using provided threshold: {threshold:.4f}")
