@@ -1,0 +1,10 @@
+results/
+*.npy
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.png
+*.npy
+src/patchcore.egg-info/
+src/patchcore.egg-info/ >> .gitignore.ipynb
