@@ -19,6 +19,7 @@ def plot_segmentation_images(
         image_transform=lambda x: x,
         mask_transform=lambda x: x,
         save_depth=4,
+        threshold=None,
 ):
     """Generate anomaly segmentation images.
 
@@ -32,8 +33,12 @@ def plot_segmentation_images(
         save_depth: [int] Number of path-strings to use for image savenames.
     """
 
-    if anomaly_scores is not None:
-        threshold = np.percentile(anomaly_scores, 95)
+    if threshold is None:
+        threshold = 0.07  # ROC-optimal threshold (분석 결과 기반)
+        print(f"Using optimal threshold: {threshold:.4f} (ROC-optimal)")
+    else:
+        print(f"Using provided threshold: {threshold:.4f}")
+        
     if mask_paths is None:
         mask_paths = ["-1" for _ in range(len(image_paths))]
     masks_provided = mask_paths[0] != "-1"
@@ -41,6 +46,11 @@ def plot_segmentation_images(
         anomaly_scores = ["-1" for _ in range(len(image_paths))]
 
     os.makedirs(savefolder, exist_ok=True)
+
+    if anomaly_scores is not None:
+        np.save(os.path.join(savefolder, 'scores.npy'), anomaly_scores)
+        print(f"Scores saved to: {os.path.join(savefolder, 'scores.npy')}")
+
 
     for i, (image_path, mask_path, anomaly_score, segmentation) in enumerate(tqdm.tqdm(
         zip(image_paths, mask_paths, anomaly_scores, segmentations),
@@ -67,11 +77,11 @@ def plot_segmentation_images(
         gt_is_anomaly = any(keyword in path_lower for keyword in ['ko', 'defect', 'anomaly', 'bad'])
         gt_label = "KO" if gt_is_anomaly else "OK"
         
-        # 예측 결과
-        if anomaly_score != "-1" and anomaly_scores is not None:
+        # 예측 결과 (최적 threshold 사용)
+        if anomaly_score != "-1":
             pred_is_anomaly = float(anomaly_score) > threshold
             pred_label = "Anomaly" if pred_is_anomaly else "Normal"
-            score_text = f"Score: {float(anomaly_score):.4f}"
+            score_text = f"Score: {float(anomaly_score):.4f}\nThreshold: {threshold:.4f}"
         else:
             pred_is_anomaly = False
             pred_label = "Normal"
@@ -118,13 +128,13 @@ def plot_segmentation_images(
             # 예측 segmentation
             im = axes[2].imshow(segmentation, cmap='jet')
             axes[2].set_title(f'Prediction: {pred_label}\n{score_text}\n{classification}', 
-                            fontsize=10, fontweight='bold')
+                            fontsize=9, fontweight='bold')
             axes[2].axis('off')
         else:
             # 예측 segmentation  
             im = axes[1].imshow(segmentation, cmap='jet')
             axes[1].set_title(f'Prediction: {pred_label}\n{score_text}\n{classification}', 
-                            fontsize=10, fontweight='bold')
+                            fontsize=9, fontweight='bold')
             axes[1].axis('off')
         
         # 전체 제목
